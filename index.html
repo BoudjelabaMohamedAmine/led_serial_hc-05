@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Control LED on Arduino Mega via HC-05</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+    }
+    button {
+      margin: 10px;
+      padding: 10px;
+      font-size: 16px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Control LED on Arduino Mega via HC-05 Bluetooth</h1>
+  <button id="connectButton">Connect to HC-05</button>
+  <button id="ledOnButton" disabled>Turn LED ON</button>
+  <button id="ledOffButton" disabled>Turn LED OFF</button>
+  <div id="status">Status: Disconnected</div>
+
+  <script>
+    const connectButton = document.getElementById('connectButton');
+    const ledOnButton = document.getElementById('ledOnButton');
+    const ledOffButton = document.getElementById('ledOffButton');
+    const statusDiv = document.getElementById('status');
+    
+    let port;
+
+    // Connect to the Bluetooth Serial Port (HC-05)
+    connectButton.addEventListener('click', async () => {
+      try {
+        port = await navigator.serial.requestPort();  // Request the port
+        await port.open({ baudRate: 9600 });  // Open the port with baud rate 9600
+
+        statusDiv.textContent = 'Status: Connected to HC-05';
+
+        // Enable LED control buttons
+        ledOnButton.disabled = false;
+        ledOffButton.disabled = false;
+      } catch (error) {
+        console.error("Connection failed: ", error);
+        statusDiv.textContent = "Status: Failed to connect";
+      }
+    });
+
+    // Turn LED ON (Send '1' to HC-05)
+    ledOnButton.addEventListener('click', async () => {
+      if (port) {
+        const writer = port.writable.getWriter();
+        writer.write(new TextEncoder().encode('1'));  // Send '1' to turn on LED
+        writer.releaseLock();
+        console.log("Sent: LED ON");
+      }
+    });
+
+    // Turn LED OFF (Send '0' to HC-05)
+    ledOffButton.addEventListener('click', async () => {
+      if (port) {
+        const writer = port.writable.getWriter();
+        writer.write(new TextEncoder().encode('0'));  // Send '0' to turn off LED
+        writer.releaseLock();
+        console.log("Sent: LED OFF");
+      }
+    });
+  </script>
+</body>
+</html>
