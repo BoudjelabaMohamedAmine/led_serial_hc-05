@@ -1,72 +1,68 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Control LED on Arduino Mega via HC-05</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      padding: 20px;
-    }
-    button {
-      margin: 10px;
-      padding: 10px;
-      font-size: 16px;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Web Serial API Example</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            margin: 10px;
+        }
+        #output {
+            margin-top: 20px;
+            white-space: pre-wrap;
+            border: 1px solid #ccc;
+            padding: 10px;
+            width: 80%;
+            max-width: 600px;
+            height: 200px;
+            overflow-y: auto;
+        }
+    </style>
 </head>
 <body>
-  <h1>Control LED on Arduino Mega via HC-05 Bluetooth</h1>
-  <button id="connectButton">Connect to HC-05</button>
-  <button id="ledOnButton" disabled>Turn LED ON</button>
-  <button id="ledOffButton" disabled>Turn LED OFF</button>
-  <div id="status">Status: Disconnected</div>
+    <button id="connectButton">Connect to Serial Device</button>
+    <div id="output"></div>
 
-  <script>
-    const connectButton = document.getElementById('connectButton');
-    const ledOnButton = document.getElementById('ledOnButton');
-    const ledOffButton = document.getElementById('ledOffButton');
-    const statusDiv = document.getElementById('status');
-    
-    let port;
+    <script>
+        const connectButton = document.getElementById('connectButton');
+        const output = document.getElementById('output');
 
-    // Connect to the Bluetooth Serial Port (HC-05)
-    connectButton.addEventListener('click', async () => {
-      try {
-        port = await navigator.serial.requestPort();  // Request the port
-        await port.open({ baudRate: 9600 });  // Open the port with baud rate 9600
+        connectButton.addEventListener('click', async () => {
+            try {
+                const port = await navigator.serial.requestPort();
+                await port.open({ baudRate: 9600 });
 
-        statusDiv.textContent = 'Status: Connected to HC-05';
+                const textDecoder = new TextDecoderStream();
+                const readableStreamClosed = port.readable.pipeTo(textDecoder.writable);
+                const reader = textDecoder.readable.getReader();
 
-        // Enable LED control buttons
-        ledOnButton.disabled = false;
-        ledOffButton.disabled = false;
-      } catch (error) {
-        console.error("Connection failed: ", error);
-        statusDiv.textContent = "Status: Failed to connect";
-      }
-    });
+                output.textContent = 'Connected to serial device.\n';
 
-    // Turn LED ON (Send '1' to HC-05)
-    ledOnButton.addEventListener('click', async () => {
-      if (port) {
-        const writer = port.writable.getWriter();
-        writer.write(new TextEncoder().encode('1'));  // Send '1' to turn on LED
-        writer.releaseLock();
-        console.log("Sent: LED ON");
-      }
-    });
+                while (true) {
+                    const { value, done } = await reader.read();
+                    if (done) {
+                        break;
+                    }
+                    output.textContent += value;
+                }
 
-    // Turn LED OFF (Send '0' to HC-05)
-    ledOffButton.addEventListener('click', async () => {
-      if (port) {
-        const writer = port.writable.getWriter();
-        writer.write(new TextEncoder().encode('0'));  // Send '0' to turn off LED
-        writer.releaseLock();
-        console.log("Sent: LED OFF");
-      }
-    });
-  </script>
+                reader.releaseLock();
+            } catch (error) {
+                output.textContent = `Error: ${error}\n`;
+            }
+        });
+    </script>
 </body>
 </html>
